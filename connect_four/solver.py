@@ -139,18 +139,18 @@ class GameSolver:
         
         return best_move
 
-    def agent_fours(self, state=None):
+    def agent_score(self, state=None):
         if state is None:
-            return self.agent_fours(self.current_state)
+            return self.agent_score(self.current_state)
         pass
 
-    def user_fours(self, state=None):
+    def user_score(self, state=None):
         if state is None:
-            return self.user_fours(self.current_state)
+            return self.user_score(self.current_state)
         pass
 
     def evaluate(self, state):
-        return self.agent_fours(state) - self.user_fours(state)
+        return self.agent_score(state) - self.user_score(state)
 
     def estimate(self, state):
         pass
@@ -164,4 +164,3 @@ class GameSolver:
     
 
 
-    
