@@ -23,9 +23,10 @@ class GameState:
         else:
             self.top = top
         self.utility = None
-        self.isFinal = False # True when the utility is optimal not estimation
-        self.next_moves = None
         self.pruned = False
+        self.next_moves = None
+        
+        
 
     def generate_next_moves(self):
         if self.next_moves is not None:
@@ -62,7 +63,8 @@ class GameSolver:
             raise Exception("Error: The game is already finished, no more moves can be played")
         if not self.is_agent_turn:
             raise Exception("Error: The agent caonnot move in the user's turn")
-        move, self.current_state = self.max_move(self.current_state, self.max_depth)
+        move = self.max_move(self.current_state, self.max_depth)
+        self.current_state = self.current_state.generate_next_moves()[move]
         self.is_agent_turn = False
         return move, self.current_state
 
@@ -78,11 +80,64 @@ class GameSolver:
         self.is_agent_turn = True
         return self.current_state
 
-    def max_move(self, state, max_depth, alpha=-inf, beta=inf):
-        pass
+    def max_move(self, state, depth, alpha=-inf, beta=inf):
+        self.expanded_nodes += 1
+        self.total_expanded_nodes += 1
+        if state.depth == GAME_LENGTH:
+            state.utility = self.evaluate(state)
+            return None
+        if depth == 0:
+            state.utility = self.estimate(state)
+            return None
+        utility = -inf
+        best_move = None
+        pruning = False
+        for move, next_state in state.generate_next_moves().items():
+            if pruning:
+                next_state.pruned = True
+                continue
+            self.min_move(next_state, depth - 1, alpha, beta)
+            utility2 = next_state.utility
+            if utility2 > utility:
+                best_move = move
+                utility = utility2
+                alpha = max(alpha, utility2)
+            if utility2 >= beta:
+                pruning = True
 
-    def min_move(self, state, max_depth, alpha=-inf, beta=inf):
-        pass
+        state.utility = utility
+        
+        return best_move
+
+
+    def min_move(self, state, depth, alpha=-inf, beta=inf):
+        self.expanded_nodes += 1
+        self.total_expanded_nodes += 1
+        if state.depth == GAME_LENGTH:
+            state.utility = self.evaluate(state)
+            return None
+        if depth == 0:
+            state.utility = self.estimate(state)
+            return None
+        utility = inf
+        best_move = None
+        pruning = False
+        for move, next_state in state.generate_next_moves().items():
+            if pruning:
+                next_state.pruned = True
+                continue
+            self.max_move(next_state, depth - 1, alpha, beta)
+            utility2 = next_state.utility
+            if utility2 < utility:
+                best_move = move
+                utility = utility2
+                beta = min(beta, utility2)
+            if utility2 <= alpha:
+                pruning = True
+
+        state.utility = utility
+        
+        return best_move
 
     def agent_fours(self, state=None):
         if state is None:
@@ -109,3 +164,4 @@ class GameSolver:
     
 
 
+    
