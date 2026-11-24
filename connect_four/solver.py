@@ -139,21 +139,96 @@ class GameSolver:
         
         return best_move
 
+    def _count_empty_extension(self, board, row, col, dr, dc):
+        count = 0
+        curr_row = row + dr
+        curr_col = col + dc
+        while 0 <= curr_row < BOARD_HIGHT and 0 <= curr_col < BOARD_WIDTH:
+            if board[curr_row][curr_col] == EMPTY_SYMBOL:
+                count += 1
+                curr_row += dr
+                curr_col += dc
+            else:
+                break
+        return count
+
+
+    def _run_length(self, board, row, col, dr, dc, symbol):
+        length = 0
+        curr_row = row
+        curr_col = col
+        while 0 <= curr_row < BOARD_HIGHT and 0 <= curr_col < BOARD_WIDTH:
+            if board[curr_row][curr_col] == symbol:
+                length += 1
+                curr_row += dr
+                curr_col += dc
+            else:
+                break
+        return length
+
+
+
+
+    def _score_for_symbol(self, state, symbol, weight4, weight3, weight2, weight1):
+        board = state.board
+        directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
+        four_count = 0
+        total = 0
+
+        for row_index in range(BOARD_HIGHT):
+            for col_index in range(BOARD_WIDTH):
+                for dr, dc in directions:
+                    prev_r = row_index - dr
+                    prev_c = col_index - dc
+                    if 0 <= prev_r < BOARD_HIGHT and 0 <= prev_c < BOARD_WIDTH:
+                        if board[prev_r][prev_c] == symbol:
+                            continue
+
+                    run_len = self._run_length(board, row_index, col_index, dr, dc, symbol)
+                    if run_len == 0:
+                        continue
+
+                    end_row = row_index + (run_len - 1) * dr
+                    end_col = col_index + (run_len - 1) * dc
+
+                    empty_before = self._count_empty_extension(board, row_index, col_index, -dr, -dc)
+                    empty_after = self._count_empty_extension(board, end_row, end_col, dr, dc)
+                    open_spaces = empty_before + empty_after
+
+                    if run_len >= 4:
+                        four_count += run_len - 3
+                        total += weight4 * (run_len - 3)
+                    elif run_len + open_spaces >= 4:
+                        if run_len == 3:
+                            total += weight3 * open_spaces
+                        elif run_len == 2:
+                            total += weight2 * open_spaces
+                        elif run_len == 1:
+                            total += weight1 * open_spaces
+
+        return four_count, total    
+
     def agent_score(self, state=None):
         if state is None:
-            return self.agent_score(self.current_state)
-        pass
+            state = self.current_state
+        four_count, neglected = self._score_for_symbol(state, self.agent_symbol, 20, 10, 3, 1)
+        return four_count
 
     def user_score(self, state=None):
         if state is None:
-            return self.user_score(self.current_state)
-        pass
+            state = self.current_state
+        user_symbol = PLAYER2_SYMBOL if self.agent_symbol == PLAYER1_SYMBOL else PLAYER1_SYMBOL
+        four_count, neglected = self._score_for_symbol(state, user_symbol, 20, 10, 3, 1)
+        return four_count
 
     def evaluate(self, state):
         return self.agent_score(state) - self.user_score(state)
 
     def estimate(self, state):
-        pass
+        user_symbol = PLAYER2_SYMBOL if self.agent_symbol == PLAYER1_SYMBOL else PLAYER1_SYMBOL
+        neglected, agent_value = self._score_for_symbol(state, self.agent_symbol, 20, 10, 3, 1)
+        skip, user_value = self._score_for_symbol(state, user_symbol, 20, 10, 3, 1)
+        return agent_value - user_value
 
     def available_moves(self):
         return self.current_state.generate_next_moves().keys()
