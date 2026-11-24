@@ -12,6 +12,7 @@ EMPTY_SYMBOL = " "
 
 
 class GameState:
+    
     def __init__(self, board=None, top=None, depth=0):
         self.depth = depth
         if board is None:
@@ -27,7 +28,6 @@ class GameState:
         self.next_moves = None
         
         
-
     def generate_next_moves(self):
         if self.next_moves is not None:
             return self.next_moves
@@ -58,6 +58,7 @@ class GameSolver:
         self.expanded_nodes = 0
         self.total_expanded_nodes = 0
 
+    
     def agent_move(self):
         if self.current_state.depth == GAME_LENGTH:
             raise Exception("Error: The game is already finished, no more moves can be played")
@@ -68,7 +69,8 @@ class GameSolver:
         self.is_agent_turn = False
         return move, self.current_state
 
-    def player_move(self, move):
+
+    def user_move(self, move):
         if self.current_state.depth == GAME_LENGTH:
             raise Exception("Error: The game is already finished, no more moves can be played")
         if self.is_agent_turn:
@@ -79,6 +81,7 @@ class GameSolver:
         self.current_state = self.current_state.generate_next_moves()[move]
         self.is_agent_turn = True
         return self.current_state
+
 
     def max_move(self, state, depth, alpha=-inf, beta=inf):
         self.expanded_nodes += 1
@@ -139,25 +142,31 @@ class GameSolver:
         
         return best_move
 
+
     def agent_score(self, state=None):
         if state is None:
             return self.agent_score(self.current_state)
         pass
+
 
     def user_score(self, state=None):
         if state is None:
             return self.user_score(self.current_state)
         pass
 
+
     def evaluate(self, state):
         return self.agent_score(state) - self.user_score(state)
+
 
     def estimate(self, state):
         pass
 
+
     def available_moves(self):
         return self.current_state.generate_next_moves().keys()
-    
+
+
     def is_finished(self):
         return self.current_state.depth == GAME_LENGTH
 
