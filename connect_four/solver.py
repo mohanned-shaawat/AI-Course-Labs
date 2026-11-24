@@ -84,6 +84,7 @@ class GameSolver:
 
 
     def max_move(self, state, depth, alpha=-inf, beta=inf):
+        state.pruned = False
         self.expanded_nodes += 1
         self.total_expanded_nodes += 1
         if state.depth == GAME_LENGTH:
@@ -113,6 +114,7 @@ class GameSolver:
         return best_move
 
     def min_move(self, state, depth, alpha=-inf, beta=inf):
+        state.pruned = False
         self.expanded_nodes += 1
         self.total_expanded_nodes += 1
         if state.depth == GAME_LENGTH:
