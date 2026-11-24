@@ -68,7 +68,7 @@ class GameSolver:
         self.is_agent_turn = False
         return move, self.current_state
 
-    def player_move(self, move):
+    def user_move(self, move):
         if self.current_state.depth == GAME_LENGTH:
             raise Exception("Error: The game is already finished, no more moves can be played")
         if self.is_agent_turn:
@@ -109,7 +109,6 @@ class GameSolver:
         
         return best_move
 
-
     def min_move(self, state, depth, alpha=-inf, beta=inf):
         self.expanded_nodes += 1
         self.total_expanded_nodes += 1
@@ -139,7 +138,7 @@ class GameSolver:
         
         return best_move
 
-    def _count_empty_extension(self, board, row, col, dr, dc):
+    def count_empty_extension(self, board, row, col, dr, dc):
         count = 0
         curr_row = row + dr
         curr_col = col + dc
@@ -152,8 +151,7 @@ class GameSolver:
                 break
         return count
 
-
-    def _run_length(self, board, row, col, dr, dc, symbol):
+    def run_length(self, board, row, col, dr, dc, symbol):
         length = 0
         curr_row = row
         curr_col = col
@@ -166,10 +164,7 @@ class GameSolver:
                 break
         return length
 
-
-
-
-    def _score_for_symbol(self, state, symbol, weight4, weight3, weight2, weight1):
+    def score_for_symbol(self, state, symbol, weight4, weight3, weight2, weight1):
         board = state.board
         directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
         four_count = 0
@@ -184,15 +179,15 @@ class GameSolver:
                         if board[prev_r][prev_c] == symbol:
                             continue
 
-                    run_len = self._run_length(board, row_index, col_index, dr, dc, symbol)
+                    run_len = self.run_length(board, row_index, col_index, dr, dc, symbol)
                     if run_len == 0:
                         continue
 
                     end_row = row_index + (run_len - 1) * dr
                     end_col = col_index + (run_len - 1) * dc
 
-                    empty_before = self._count_empty_extension(board, row_index, col_index, -dr, -dc)
-                    empty_after = self._count_empty_extension(board, end_row, end_col, dr, dc)
+                    empty_before = self.count_empty_extension(board, row_index, col_index, -dr, -dc)
+                    empty_after = self.count_empty_extension(board, end_row, end_col, dr, dc)
                     open_spaces = empty_before + empty_after
 
                     if run_len >= 4:
@@ -211,14 +206,14 @@ class GameSolver:
     def agent_score(self, state=None):
         if state is None:
             state = self.current_state
-        four_count, neglected = self._score_for_symbol(state, self.agent_symbol, 20, 10, 3, 1)
+        four_count, neglected = self.score_for_symbol(state, self.agent_symbol, 20, 10, 3, 1)
         return four_count
 
     def user_score(self, state=None):
         if state is None:
             state = self.current_state
         user_symbol = PLAYER2_SYMBOL if self.agent_symbol == PLAYER1_SYMBOL else PLAYER1_SYMBOL
-        four_count, neglected = self._score_for_symbol(state, user_symbol, 20, 10, 3, 1)
+        four_count, neglected = self.score_for_symbol(state, user_symbol, 20, 10, 3, 1)
         return four_count
 
     def evaluate(self, state):
@@ -226,8 +221,8 @@ class GameSolver:
 
     def estimate(self, state):
         user_symbol = PLAYER2_SYMBOL if self.agent_symbol == PLAYER1_SYMBOL else PLAYER1_SYMBOL
-        neglected, agent_value = self._score_for_symbol(state, self.agent_symbol, 20, 10, 3, 1)
-        skip, user_value = self._score_for_symbol(state, user_symbol, 20, 10, 3, 1)
+        neglected, agent_value = self.score_for_symbol(state, self.agent_symbol, 20, 10, 3, 1)
+        skip, user_value = self.score_for_symbol(state, user_symbol, 20, 10, 3, 1)
         return agent_value - user_value
 
     def available_moves(self):
