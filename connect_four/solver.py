@@ -141,32 +141,6 @@ class GameSolver:
         
         return best_move
 
-    def count_empty_extension(self, board, row, col, dr, dc):
-        count = 0
-        curr_row = row + dr
-        curr_col = col + dc
-        while 0 <= curr_row < BOARD_HIGHT and 0 <= curr_col < BOARD_WIDTH:
-            if board[curr_row][curr_col] == EMPTY_SYMBOL:
-                count += 1
-                curr_row += dr
-                curr_col += dc
-            else:
-                break
-        return count
-
-    def run_length(self, board, row, col, dr, dc, symbol):
-        length = 0
-        curr_row = row
-        curr_col = col
-        while 0 <= curr_row < BOARD_HIGHT and 0 <= curr_col < BOARD_WIDTH:
-            if board[curr_row][curr_col] == symbol:
-                length += 1
-                curr_row += dr
-                curr_col += dc
-            else:
-                break
-        return length
-
     def score_for_symbol(self, state, symbol, weight4, weight3, weight2, weight1):
         board = state.board
         directions = [(0, 1), (1, 0), (1, 1), (1, -1)]
@@ -176,36 +150,50 @@ class GameSolver:
         for row_index in range(BOARD_HIGHT):
             for col_index in range(BOARD_WIDTH):
                 for dr, dc in directions:
-                    prev_r = row_index - dr
-                    prev_c = col_index - dc
-                    if 0 <= prev_r < BOARD_HIGHT and 0 <= prev_c < BOARD_WIDTH:
-                        if board[prev_r][prev_c] == symbol:
-                            continue
-
-                    run_len = self.run_length(board, row_index, col_index, dr, dc, symbol)
-                    if run_len == 0:
+                    end_row = row_index + 3 * dr
+                    end_col = col_index + 3 * dc
+                    if not (0 <= end_row < BOARD_HIGHT and 0 <= end_col < BOARD_WIDTH):
                         continue
 
-                    end_row = row_index + (run_len - 1) * dr
-                    end_col = col_index + (run_len - 1) * dc
+                    symbol_count = 0
+                    empty_count = 0
+                    has_opponent = False
+                    playability_score = 0.0
 
-                    empty_before = self.count_empty_extension(board, row_index, col_index, -dr, -dc)
-                    empty_after = self.count_empty_extension(board, end_row, end_col, dr, dc)
-                    open_spaces = empty_before + empty_after
+                    for step in range(4):
+                        r = row_index + step * dr
+                        c = col_index + step * dc
+                        cell = board[r][c]
+                        if cell == symbol:
+                            symbol_count += 1
+                        elif cell == EMPTY_SYMBOL:
+                            empty_count += 1
+                            if r == BOARD_HIGHT - 1 or board[r + 1][c] != EMPTY_SYMBOL:
+                                playability_score += 1.0
+                            else:
+                                playability_score += 0.5
+                        else:
+                            has_opponent = True
+                            break
 
-                    if run_len >= 4:
-                        four_count += run_len - 3
-                        total += weight4 * (run_len - 3)
-                    elif run_len + open_spaces >= 4:
-                        if run_len == 3:
-                            total += weight3 * open_spaces
-                        elif run_len == 2:
-                            total += weight2 * open_spaces
-                        elif run_len == 1:
-                            total += weight1 * open_spaces
+                    if has_opponent:
+                        continue
 
-        return four_count, total    
+                    if symbol_count == 4:
+                        four_count += 1
+                        total += weight4
+                    elif symbol_count + empty_count == 4:
+                        playable_factor = 1.0 + 0.25 * playability_score
+                        if symbol_count == 3:
+                            total += weight3 * playable_factor
+                        elif symbol_count == 2:
+                            total += weight2 * playable_factor
+                        elif symbol_count == 1:
+                            total += weight1 * playable_factor
 
+        return four_count, total
+
+    
     def agent_score(self, state=None):
         if state is None:
             state = self.current_state
